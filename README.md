@@ -47,9 +47,9 @@ Student Attendance Management System (SAMS) is a web-based application designed 
 1. **Admin Login**:
    - Admin can manage students, professors, and attendance records.
 2. **Professor Login**:
-   - Professors can mark attendance and view class attendance reports.
+   - Professors can mark attendance, view class attendance reports, upload notes/assignment, etc.
 3. **Student Login**:
-   - Students can view their attendance history and analytics.
+   - Students can view their attendance history, midsem marks, notes, quiz and analytics, etc.
 
 ## Screenshots
 ![image](https://github.com/user-attachments/assets/18b54765-9ab0-4b31-94c4-1f5d7809a4a4)
