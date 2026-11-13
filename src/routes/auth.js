@@ -93,9 +93,17 @@ authRouter.post('/login', async (req, res, next) => {
         [user.user_id, req.ip ?? null]
       ).catch((e) => console.warn('audit log failed:', e.message));
 
-      const target = typeof req.body.next === 'string' && req.body.next.startsWith('/')
-        ? req.body.next
-        : homeFor(roleId);
+      /* Only a path on THIS site is an acceptable post-login destination.
+         "starts with /" alone is not enough: a browser reads "//evil.example"
+         and "/\evil.example" as absolute URLs, so a crafted ?next= link would
+         hand the user straight to another site immediately after they signed
+         in here - carrying this domain's authority with it. */
+      const wanted = typeof req.body.next === 'string' ? req.body.next : '';
+      const isLocalPath =
+        wanted.startsWith('/') &&
+        wanted.charCodeAt(1) !== 47 &&   // 47 = / ; "//host" is an absolute URL
+        wanted.charCodeAt(1) !== 92;    // 92 = \ ; browsers read "/\host" as absolute too
+      const target = isLocalPath ? wanted : homeFor(roleId);
 
       req.session.save(() => res.redirect(target));
     });

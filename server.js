@@ -2,6 +2,8 @@ import express from 'express';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import path from 'node:path';
+import { statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { config, isProd } from './src/config.js';
@@ -24,6 +26,22 @@ app.set('views', path.join(__dirname, 'views'));
 /* ----------------------------------------------------------- middleware */
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: isProd ? '7d' : 0 }));
+
+/* Static assets are cached hard in production, so their URLs have to change
+   when they do. Without this, a deploy ships new HTML while browsers keep the
+   style.css / app.js they cached days ago - the page renders with stale CSS
+   and dead scripts until the cache expires. The stamp is derived from the
+   files themselves, so it only changes when they change. */
+const assetVersion = createHash('sha1')
+  .update(['css/style.css', 'js/app.js'].map((f) => {
+    try {
+      const st = statSync(path.join(__dirname, 'public', f));
+      return `${f}:${st.size}:${st.mtimeMs}`;
+    } catch { return f; }
+  }).join('|'))
+  .digest('hex')
+  .slice(0, 8);
+app.locals.assetVersion = assetVersion;
 
 // Minimal security headers (no extra dependency needed for this project's scope)
 app.use((req, res, next) => {

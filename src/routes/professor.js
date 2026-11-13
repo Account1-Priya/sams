@@ -55,6 +55,39 @@ async function coursesFor(professorId) {
   );
 }
 
+/** True only for a real "YYYY-MM-DD" calendar date. */
+function isIsoDate(v) {
+  if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(String(v ?? ''))) return false;
+  const d = new Date(v + 'T00:00:00Z');
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
+
+/**
+ * The set of students the sheet was actually built from.
+ *
+ * Both sheets are filtered by department + semester, but the submission comes
+ * back as a flat map of ids and nothing re-checked them. A hand-crafted POST
+ * from any signed-in professor could therefore write attendance or marks for a
+ * student in another department entirely, and an id matching no student at all
+ * escaped as a 500 from the foreign key instead of a refusal.
+ */
+async function rosterIds(departmentId, semesterId) {
+  const rows = await query(
+    'SELECT student_id FROM students WHERE department_id = $1 AND semester_id = $2',
+    [departmentId, semesterId]
+  );
+  return new Set(rows.map((r) => r.student_id));
+}
+
+/** Refuse a submission naming anyone who is not on that roster. */
+function offRosterResponse(res, count) {
+  return res.status(400).render('error', {
+    title: 'Unknown students in the submission', status: 400,
+    message: `${count} of the submitted students are not in the selected ` +
+             'department and semester. Please reopen the sheet and try again.',
+  });
+}
+
 /** Guard: confirm this professor may touch this course at all. */
 async function assertTeaches(professorId, courseId) {
   const row = await queryOne(
@@ -186,7 +219,9 @@ professorRouter.get('/attendance/mark', async (req, res, next) => {
     const departmentId = Number(req.query.department_id);
     const semesterId = Number(req.query.semester_id);
     const courseId = Number(req.query.course_id);
-    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    // Postgres rejects "not-a-date" with a 500, and quietly ACCEPTS words like
+    // "tomorrow" - so neither may reach the query.
+    const date = isIsoDate(req.query.date) ? req.query.date : today();
 
     const rerenderSelect = async (error) =>
       res.status(400).render('professor/attendance-select', {
@@ -254,7 +289,7 @@ professorRouter.post('/attendance/mark', async (req, res, next) => {
     const date = String(req.body.date || '').slice(0, 10);
     const statuses = req.body.status ?? {};
 
-    if (!departmentId || !semesterId || !courseId || !date) {
+    if (!departmentId || !semesterId || !courseId || !isIsoDate(date)) {
       return res.status(400).render('error', {
         title: 'Incomplete submission', status: 400,
         message: 'Some attendance details were missing. Please start again.',
@@ -283,6 +318,10 @@ professorRouter.post('/attendance/mark', async (req, res, next) => {
         });
       }
     }
+
+    const roster = await rosterIds(departmentId, semesterId);
+    const strays = entries.filter(([id]) => !roster.has(id)).length;
+    if (strays) return offRosterResponse(res, strays);
 
     await withTransaction(async (client) => {
       // Reuse the class for this course+professor+date instead of inserting a
@@ -402,6 +441,8 @@ professorRouter.post('/marks/save', async (req, res, next) => {
     const prof = await professorOr404(req, res);
     if (!prof) return;
 
+    const departmentId = Number(req.body.department_id);
+    const semesterId = Number(req.body.semester_id);
     const courseId = Number(req.body.course_id);
     const outOf = Number(req.body.outof_marks);
     const marks = req.body.marks ?? {};
@@ -419,6 +460,14 @@ professorRouter.post('/marks/save', async (req, res, next) => {
       });
     }
 
+    if (!departmentId || !semesterId) {
+      return res.status(400).render('error', {
+        title: 'Incomplete submission', status: 400,
+        message: 'The department and semester were missing from the submission. ' +
+                 'Please reopen the sheet and try again.',
+      });
+    }
+
     const entries = parseIdMap(marks).filter(([, v]) => String(v).trim() !== '');
     for (const [, v] of entries) {
       const n = Number(v);
@@ -429,6 +478,10 @@ professorRouter.post('/marks/save', async (req, res, next) => {
         });
       }
     }
+
+    const roster = await rosterIds(departmentId, semesterId);
+    const strays = entries.filter(([id]) => !roster.has(id)).length;
+    if (strays) return offRosterResponse(res, strays);
 
     await withTransaction(async (client) => {
       for (const [studentId, value] of entries) {

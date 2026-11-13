@@ -211,7 +211,10 @@ console.log(`\nSmoke testing ${BASE}\n${'='.repeat(62)}\n`);
   const mcsrf = tokenOf(mentry.text);
   const msaved = await c.req('/professor/marks/save', {
     method: 'POST',
-    body: form({ _csrf: mcsrf, course_id: '1', outof_marks: '50',
+    // department_id + semester_id mirror the hidden fields the real form
+    // sends; the server validates the submitted students against that roster.
+    body: form({ _csrf: mcsrf, department_id: '1', semester_id: '5',
+                 course_id: '1', outof_marks: '50',
                  'marks[s1]': '44', 'marks[s2]': '39' }),
   });
   check('marks save', msaved.status === 302 && msaved.location === '/professor?saved=marks',
@@ -219,7 +222,8 @@ console.log(`\nSmoke testing ${BASE}\n${'='.repeat(62)}\n`);
 
   const overMax = await c.req('/professor/marks/save', {
     method: 'POST',
-    body: form({ _csrf: mcsrf, course_id: '1', outof_marks: '50', 'marks[s1]': '999' }),
+    body: form({ _csrf: mcsrf, department_id: '1', semester_id: '5',
+                 course_id: '1', outof_marks: '50', 'marks[s1]': '999' }),
   });
   check('marks above the maximum are rejected', overMax.status === 400, `got ${overMax.status}`);
 }

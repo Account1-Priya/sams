@@ -5,6 +5,13 @@ import { asDate, shortDate, longDate, today } from '../dates.js';
 
 export const studentRouter = express.Router();
 
+/** True only for a real "YYYY-MM-DD" calendar date. */
+function isIsoDate(v) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? ''))) return false;
+  const d = new Date(v + 'T00:00:00Z');
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
+
 /**
  * Running attendance percentage over time.
  *
@@ -98,7 +105,12 @@ studentRouter.get('/', async (req, res, next) => {
     }
 
     const filter = req.query.filter === 'date' ? 'date' : 'all';
-    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    // The value goes into a DATE comparison, so anything that is not a real
+    // ISO date has to be rejected here. Passing it through produced a 500
+    // ("invalid input syntax for type date") from a hand-edited URL, and
+    // Postgres also quietly accepts words like "tomorrow", which would show
+    // the student a day they never asked for.
+    const date = isIsoDate(req.query.date) ? req.query.date : today();
 
     const rows = filter === 'date'
       ? await query(
