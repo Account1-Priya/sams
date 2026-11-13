@@ -27,14 +27,17 @@
     </div>
   </div>
 
-  <nav class="sidebar__nav" aria-label="Main">
-    <% links.forEach(function (l) { %>
-      <a href="<%= l.href %>" class="<%= active === l.key ? 'is-active' : '' %>"
-         <%= active === l.key ? 'aria-current="page"' : '' %>>
-        <span class="nav-ico" aria-hidden="true"><%= l.icon %></span><%= l.label %>
-      </a>
-    <% }); %>
-  </nav>
+  <div>
+    <div class="sidebar__section">Menu</div>
+    <nav class="sidebar__nav" aria-label="Main">
+      <% links.forEach(function (l) { %>
+        <a href="<%= l.href %>" class="<%= active === l.key ? 'is-active' : '' %>"
+           <%= active === l.key ? 'aria-current="page"' : '' %>>
+          <span class="nav-ico" aria-hidden="true"><%= l.icon %></span><%= l.label %>
+        </a>
+      <% }); %>
+    </nav>
+  </div>
 
   <div class="sidebar__foot">
     <div class="btn-row">

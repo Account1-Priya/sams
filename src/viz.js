@@ -309,5 +309,3 @@ export function tableView(headers, rows) {
     </div>
   </details>`;
 }
-
-export const vizEscape = esc;

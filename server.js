@@ -1,10 +1,11 @@
 import express from 'express';
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { config, isProd } from './src/config.js';
-import { assertConnection } from './src/db.js';
+import { assertConnection, pool } from './src/db.js';
 import { csrf } from './src/middleware/csrf.js';
 import { exposeUser, homeFor } from './src/middleware/auth.js';
 import * as viz from './src/viz.js';
@@ -34,8 +35,28 @@ app.use((req, res, next) => {
 
 if (isProd) app.set('trust proxy', 1);
 
+/* Liveness probe. Deliberately mounted ABOVE the session middleware: the host
+   polls this constantly, and below the session it would allocate a throwaway
+   session per ping. It reports that the process is up and serving, not that
+   the database is reachable - the app stays useful (and recoverable) while
+   the database is down, so a DB blip should not cause a restart loop. */
+app.get('/healthz', (req, res) => res.type('text').send('ok'));
+
+/* Sessions live in Postgres, not in process memory. The old MemoryStore lost
+   every session whenever the process restarted - which on a sleeping free-tier
+   host is routine - and because the CSRF token lives in the session, a user
+   mid-form came back to a 403 rather than a login prompt. This reuses the
+   application pool rather than opening a second one. */
+const PgStore = connectPgSimple(session);
+
 app.use(session({
   name: 'sams.sid',
+  store: new PgStore({
+    pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 15,   // seconds
+  }),
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,

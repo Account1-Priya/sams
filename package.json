@@ -5,6 +5,9 @@
   "type": "module",
   "description": "Student Attendance Management System - Node.js + Supabase (PostgreSQL)",
   "main": "server.js",
+  "engines": {
+    "node": ">=20 <23"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
@@ -17,6 +20,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "connect-pg-simple": "^10.0.0",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.2",

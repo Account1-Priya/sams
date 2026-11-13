@@ -20,8 +20,11 @@ export const config = {
   port: Number(process.env.PORT ?? 3000),
   nodeEnv: process.env.NODE_ENV ?? 'development',
 
-  // Session signing secret. MUST be set to a long random string in production.
-  sessionSecret: required('SESSION_SECRET', 'dev-only-insecure-secret-change-me'),
+  // Session signing secret. No fallback ON PURPOSE: a default here would be a
+  // published string, so a host that forgot to set the variable would boot
+  // with a secret anyone could read off the repo and use to forge a session
+  // cookie for any account. Failing to start is the safe outcome.
+  sessionSecret: required('SESSION_SECRET'),
 
   db: {
     // Supabase gives you this under: Project Settings -> Database -> Connection string

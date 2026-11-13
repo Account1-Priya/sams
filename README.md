@@ -12,10 +12,10 @@ Student Attendance Management System (SAMS) is a web-based application designed 
 - **Secure Data Management**: Utilizes encrypted passwords and secure database connections.
 
 ## Technologies Used
-- **Frontend**: HTML, CSS, JavaScript
-- **Backend**: PHP
-- **Database**: MySQL
-- **Additional Libraries**: Bootstrap for responsive design
+- **Frontend**: EJS templates, CSS, JavaScript (no frontend framework)
+- **Backend**: Node.js + Express
+- **Database**: PostgreSQL (Supabase in production, PGlite for local development)
+- **Charts**: hand-rolled inline SVG (`src/viz.js`) — no charting library
 
 ## Team Members
 1. **Anurag Kumar**
@@ -24,24 +24,25 @@ Student Attendance Management System (SAMS) is a web-based application designed 
 4. **Pradeep Kumar Maurya**
 
 ## Installation Guide
-1. Clone the repository to your local machine:
+1. Clone the repository and install dependencies:
    ```bash
    git clone https://github.com/your-repo/sams.git
+   cd sams
+   npm install
    ```
-2. Move the project folder to your local web server directory (e.g., `htdocs` for XAMPP).
-3. Start your web server (e.g., XAMPP or WAMP) and open the PHPMyAdmin panel.
-4. Create a database named `sams` and import the provided `sams.sql` file.
-5. Update the database configuration in `config.php`:
-   ```php
-   $servername = "localhost";
-   $username = "root";
-   $password = "";
-   $dbname = "sams";
+2. Copy `.env.example` to `.env` and fill it in.
+3. Start the local test database in a second terminal:
+   ```bash
+   npm run devdb
    ```
-6. Open the application in your browser:
+4. Load the schema, then start the app:
+   ```bash
+   npm run db:init
+   npm start
    ```
-   http://localhost/sams
-   ```
+5. Open http://localhost:3000
+
+See [SETUP.md](SETUP.md) for the full walkthrough, including Supabase setup.
 
 ## Usage Instructions
 1. **Admin Login**:

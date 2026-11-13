@@ -29,14 +29,6 @@ export function homeFor(roleId) {
   }
 }
 
-/** Must be logged in as anybody. */
-export function requireAuth(req, res, next) {
-  if (!req.session?.user) {
-    return res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
-  }
-  next();
-}
-
 /**
  * Must be logged in with one specific role.
  * Returns 403 rather than redirecting, so a logged-in student poking at
