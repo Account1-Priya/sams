@@ -1,0 +1,113 @@
+<%- include('../partials/head', { title }) %>
+<%
+  const nav = [
+    { key: 'home',       href: '/professor',            label: 'Overview',        icon: '■' },
+    { key: 'attendance', href: '/professor/attendance', label: 'Mark attendance', icon: '✓' },
+    { key: 'marks',      href: '/professor/marks',      label: 'Upload marks',    icon: '★' }
+  ];
+  const short = (s) => (s || '').trim().charAt(0).toUpperCase();
+  const graded = students.filter(function (s) { return s.marks_obtained !== null && s.marks_obtained !== undefined; });
+%>
+
+<div class="layout">
+  <%- include('../partials/sidebar', {
+        initials: short(prof.first_name) + short(prof.last_name),
+        name: prof.first_name + ' ' + (prof.last_name || ''),
+        subtitle: prof.department_name || '',
+        active, links: nav
+      }) %>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1><%= course ? course.course_name : 'Marks' %></h1>
+        <div class="sub">
+          <% if (course) { %><span class="pill pill--brand"><%= course.course_code %></span> &middot; <% } %>
+          <%= students.length %> student<%= students.length === 1 ? '' : 's' %>
+          <% if (graded.length) { %> &middot; <%= graded.length %> already graded<% } %>
+        </div>
+      </div>
+      <a href="/professor/marks" class="btn btn--subtle btn--sm">Change class</a>
+    </div>
+
+    <% if (!students.length) { %>
+      <div class="card">
+        <div class="empty">
+          <span class="empty__icon" aria-hidden="true">&#128101;</span>
+          No students found in that department and semester.
+        </div>
+      </div>
+    <% } else { %>
+      <form method="POST" action="/professor/marks/save">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="course_id" value="<%= courseId %>">
+        <!-- professor_id is deliberately NOT sent from the browser; the server
+             reads it from the session. -->
+
+        <div class="card">
+          <div class="card__head">
+            <h2>Enter marks</h2>
+            <div class="field" style="margin:0;display:flex;align-items:center;gap:.5rem">
+              <label for="outof_marks" style="margin:0;white-space:nowrap">Out of</label>
+              <input type="number" id="outof_marks" name="outof_marks" min="1" required
+                     value="<%= defaultOutOf %>" style="width:92px">
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:34px" class="num">#</th>
+                  <th>Student</th>
+                  <th style="width:140px">Marks</th>
+                  <th style="width:120px" class="num">Current</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% students.forEach(function (s, i) {
+                     const has = s.marks_obtained !== null && s.marks_obtained !== undefined; %>
+                  <tr>
+                    <td class="num" style="color:var(--text-muted)"><%= i + 1 %></td>
+                    <td>
+                      <span class="cell-strong"><%= s.first_name %> <%= s.last_name || '' %></span>
+                      <div class="cell-sub"><%= s.enrollment_no %></div>
+                    </td>
+                    <td>
+                      <input type="number" name="marks[s<%= s.student_id %>]" min="0" step="1"
+                             class="mark-input"
+                             value="<%= has ? s.marks_obtained : '' %>"
+                             aria-label="Marks for <%= s.first_name %> <%= s.last_name || '' %>">
+                    </td>
+                    <td class="num">
+                      <% if (has) { %>
+                        <span class="pill pill--muted"><%= s.marks_obtained %>/<%= s.outof_marks %></span>
+                      <% } else { %>
+                        <span style="color:var(--text-muted)">&mdash;</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="alert alert--info" style="margin-top:1rem">
+            <span class="alert__ico" aria-hidden="true">&#8505;</span>
+            <span>
+              Leave a box empty to skip that student. Re-uploading updates the
+              existing mark instead of adding a duplicate.
+            </span>
+          </div>
+
+          <div class="btn-row">
+            <button type="submit" class="btn">Save marks</button>
+            <a href="/professor" class="btn btn--subtle">Cancel</a>
+          </div>
+        </div>
+      </form>
+    <% } %>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

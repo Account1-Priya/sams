@@ -1,0 +1,52 @@
+<%
+  /* One sidebar for all three roles. `links`, `active`, `name`, `initials`
+     and `subtitle` come from the page that includes this partial. */
+%>
+<button class="nav-toggle" data-nav-toggle aria-expanded="false" aria-controls="sidebar">
+  <span class="nav-toggle__bars" aria-hidden="true"><span></span><span></span><span></span></span>
+  Menu
+</button>
+<div class="scrim" aria-hidden="true"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__brand">
+    <span class="sidebar__mark" aria-hidden="true">SA</span>
+    <span class="sidebar__wordmark">
+      <span class="sidebar__logo">SAMS</span>
+      <span class="sidebar__tagline">Attendance System</span>
+    </span>
+  </div>
+
+  <div class="sidebar__profile">
+    <div class="avatar" aria-hidden="true"><%= initials %></div>
+    <div class="sidebar__who">
+      <div class="sidebar__name"><%= name %></div>
+      <% if (typeof subtitle !== 'undefined' && subtitle) { %>
+        <div class="sidebar__sub"><%= subtitle %></div>
+      <% } %>
+    </div>
+  </div>
+
+  <nav class="sidebar__nav" aria-label="Main">
+    <% links.forEach(function (l) { %>
+      <a href="<%= l.href %>" class="<%= active === l.key ? 'is-active' : '' %>"
+         <%= active === l.key ? 'aria-current="page"' : '' %>>
+        <span class="nav-ico" aria-hidden="true"><%= l.icon %></span><%= l.label %>
+      </a>
+    <% }); %>
+  </nav>
+
+  <div class="sidebar__foot">
+    <div class="btn-row">
+      <button type="button" class="theme-toggle" data-theme-toggle
+              aria-label="Switch colour theme" title="Switch colour theme">
+        <span class="ico-light" aria-hidden="true">&#9728;</span>
+        <span class="ico-dark" aria-hidden="true">&#9790;</span>
+      </button>
+      <form method="POST" action="/logout" style="flex:1">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="btn btn--ghost btn--block btn--sm">Log out</button>
+      </form>
+    </div>
+  </div>
+</aside>

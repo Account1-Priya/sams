@@ -1,0 +1,182 @@
+<%- include('../partials/head', { title }) %>
+<%
+  const nav = [
+    { key: 'home',       href: '/professor',            label: 'Overview',        icon: '■' },
+    { key: 'attendance', href: '/professor/attendance', label: 'Mark attendance', icon: '✓' },
+    { key: 'marks',      href: '/professor/marks',      label: 'Upload marks',    icon: '★' }
+  ];
+  const short = (s) => (s || '').trim().charAt(0).toUpperCase();
+  const total = summary.records || 0;
+  const att   = summary.attended || 0;
+  const rate  = total > 0 ? (att / total) * 100 : 0;
+  const t     = viz.tone(rate);
+  const asDate = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d || '').slice(0, 10));
+%>
+
+<div class="layout">
+  <%- include('../partials/sidebar', {
+        initials: short(prof.first_name) + short(prof.last_name),
+        name: prof.first_name + ' ' + (prof.last_name || ''),
+        subtitle: prof.department_name || '',
+        active, links: nav
+      }) %>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>Welcome, <%= prof.first_name %></h1>
+        <div class="sub"><%= prof.department_name || 'Department not set' %></div>
+      </div>
+      <div class="btn-row">
+        <a href="/professor/attendance" class="btn">Mark attendance</a>
+        <a href="/professor/marks" class="btn btn--subtle">Upload marks</a>
+      </div>
+    </div>
+
+    <% if (saved === 'attendance') { %>
+      <div class="alert alert--success">
+        <span class="alert__ico" aria-hidden="true">&#10003;</span>
+        <span>Attendance saved.</span>
+      </div>
+    <% } else if (saved === 'marks') { %>
+      <div class="alert alert--success">
+        <span class="alert__ico" aria-hidden="true">&#10003;</span>
+        <span>Marks saved.</span>
+      </div>
+    <% } %>
+
+    <div class="grid grid--4">
+      <div class="stat">
+        <div class="stat__label">Courses taught</div>
+        <div class="stat__value"><%= courses.length %></div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Classes held</div>
+        <div class="stat__value"><%= summary.classes_held || 0 %></div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Records marked</div>
+        <div class="stat__value"><%= total %></div>
+      </div>
+      <div class="stat">
+        <div class="stat__label">Average turnout</div>
+        <div class="stat__value stat__value--<%= t %>"><%= rate.toFixed(1) %>%</div>
+        <div style="margin-top:.4rem"><%- viz.meter(rate, { height: 6 }) %></div>
+      </div>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="card" style="margin:0">
+        <div class="card__head">
+          <h2>Turnout over time</h2>
+          <span class="card__note">Per class day</span>
+        </div>
+        <% if (trend.length < 2) { %>
+          <div class="empty" style="padding:1.6rem 1rem">
+            <span class="empty__icon" aria-hidden="true">&#128200;</span>
+            A trend appears once you have marked two or more class days.
+          </div>
+        <% } else { %>
+          <%- viz.lineChart(trend, { valueLabel: 'Turnout', dateLabel: 'Class day' }) %>
+        <% } %>
+      </div>
+
+      <div class="card" style="margin:0">
+        <div class="card__head">
+          <h2>Turnout by course</h2>
+          <span class="card__note">Attended / marked</span>
+        </div>
+        <% const withData = byCourse.filter(function (c) { return c.marked > 0; }); %>
+        <% if (!withData.length) { %>
+          <div class="empty" style="padding:1.6rem 1rem">
+            <span class="empty__icon" aria-hidden="true">&#128214;</span>
+            No attendance marked yet.
+          </div>
+        <% } else { %>
+          <%- viz.meterList(withData.map(function (c) {
+                return {
+                  name: c.course_name,
+                  sub: c.course_code,
+                  pct: c.marked > 0 ? (c.attended / c.marked) * 100 : 0,
+                  detail: c.attended + ' / ' + c.marked
+                };
+              }), { nameLabel: 'Course', valueLabel: 'Attended' }) %>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="card" style="margin:0">
+        <div class="card__head">
+          <h2>My courses</h2>
+          <span class="card__note"><%= courses.length %> assigned</span>
+        </div>
+        <% if (!courses.length) { %>
+          <div class="empty">
+            <span class="empty__icon" aria-hidden="true">&#128214;</span>
+            You are not assigned to any courses yet.<br>
+            <span style="font-size:.85rem">Ask your HoD to add rows to <code>professor_courses</code>.</span>
+          </div>
+        <% } else { %>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Course</th><th>Code</th><th></th></tr></thead>
+              <tbody>
+                <% courses.forEach(function (c) { %>
+                  <tr>
+                    <td class="cell-strong"><%= c.course_name %></td>
+                    <td><span class="pill pill--brand"><%= c.course_code %></span></td>
+                    <td style="text-align:right">
+                      <a class="btn btn--subtle btn--sm" href="/professor/attendance">Mark</a>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+
+      <div class="card" style="margin:0">
+        <div class="card__head">
+          <h2>Recent classes</h2>
+          <span class="card__note">Last <%= recent.length %></span>
+        </div>
+        <% if (!recent.length) { %>
+          <div class="empty">
+            <span class="empty__icon" aria-hidden="true">&#128197;</span>
+            No classes recorded yet.
+          </div>
+        <% } else { %>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Course</th><th class="num">Marked</th><th class="num">Turnout</th></tr>
+              </thead>
+              <tbody>
+                <% recent.forEach(function (r) {
+                     const p = r.marked > 0 ? (r.attended / r.marked) * 100 : 0;
+                     const tok = viz.tone(p); %>
+                  <tr>
+                    <td style="white-space:nowrap"><%= asDate(r.class_schedule) %></td>
+                    <td><span class="pill pill--brand"><%= r.course_code %></span></td>
+                    <td class="num"><%= r.marked %></td>
+                    <td class="num">
+                      <% if (r.marked) { %>
+                        <span class="pill pill--<%= tok %>"><%= p.toFixed(0) %>%</span>
+                      <% } else { %>
+                        <span class="pill pill--muted">&mdash;</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

@@ -1,0 +1,91 @@
+<%- include('partials/head', { title }) %>
+
+<main class="auth">
+  <%- include('partials/auth-aside', {
+        heading: 'Teach with less admin.',
+        lede: 'Create a professor account to mark attendance and publish marks.'
+      }) %>
+
+  <div class="auth__panel">
+    <div class="auth__card auth__card--wide">
+      <h1 class="auth__title">Professor registration</h1>
+      <p class="auth__lede">Your HoD assigns your courses after the account is created.</p>
+
+      <% if (error) { %>
+        <div class="alert alert--error" role="alert">
+          <span class="alert__ico" aria-hidden="true">&#9888;</span>
+          <span><%= error %></span>
+        </div>
+      <% } %>
+
+      <form method="POST" action="/signup/professor" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <div class="field-row">
+          <div class="field">
+            <label for="first_name">First name</label>
+            <input type="text" id="first_name" name="first_name" required
+                   value="<%= values.first_name || '' %>">
+          </div>
+          <div class="field">
+            <label for="last_name">Last name</label>
+            <input type="text" id="last_name" name="last_name"
+                   value="<%= values.last_name || '' %>">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required
+                 value="<%= values.username || '' %>">
+          <div class="hint">Letters, numbers and underscores only.</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required value="<%= values.email || '' %>">
+          </div>
+          <div class="field">
+            <label for="phone">Phone</label>
+            <input type="text" id="phone" name="phone" value="<%= values.phone || '' %>">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="department_id">Department</label>
+          <select id="department_id" name="department_id" required>
+            <option value="">Select department</option>
+            <% departments.forEach(function (d) { %>
+              <option value="<%= d.department_id %>"
+                <%= String(values.department_id) === String(d.department_id) ? 'selected' : '' %>>
+                <%= d.department_name %>
+              </option>
+            <% }); %>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autocomplete="new-password" required>
+            <div class="hint">8+ characters, with a letter, a number and one of @ $ ! % * ? &amp; #</div>
+          </div>
+          <div class="field">
+            <label for="confirm_password">Confirm password</label>
+            <input type="password" id="confirm_password" name="confirm_password"
+                   autocomplete="new-password" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn--block">Create account</button>
+      </form>
+
+      <div class="auth__foot">
+        <a href="/signup">Back</a> &middot; Already registered? <a href="/login">Sign in</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

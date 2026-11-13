@@ -1,0 +1,97 @@
+<%- include('../partials/head', { title }) %>
+<%
+  const nav = [
+    { key: 'home',       href: '/professor',            label: 'Overview',        icon: '■' },
+    { key: 'attendance', href: '/professor/attendance', label: 'Mark attendance', icon: '✓' },
+    { key: 'marks',      href: '/professor/marks',      label: 'Upload marks',    icon: '★' }
+  ];
+  const short = (s) => (s || '').trim().charAt(0).toUpperCase();
+  const todayIso = new Date().toISOString().slice(0, 10);
+%>
+
+<div class="layout">
+  <%- include('../partials/sidebar', {
+        initials: short(prof.first_name) + short(prof.last_name),
+        name: prof.first_name + ' ' + (prof.last_name || ''),
+        subtitle: prof.department_name || '',
+        active, links: nav
+      }) %>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>Mark attendance</h1>
+        <div class="sub">Choose the class you are taking.</div>
+      </div>
+    </div>
+
+    <% if (error) { %>
+      <div class="alert alert--error">
+        <span class="alert__ico" aria-hidden="true">&#9888;</span>
+        <span><%= error %></span>
+      </div>
+    <% } %>
+
+    <div class="card" style="max-width:620px">
+      <% if (!courses.length) { %>
+        <div class="empty">
+          <span class="empty__icon" aria-hidden="true">&#128214;</span>
+          You are not assigned to any courses, so there is nothing to mark.
+        </div>
+      <% } else { %>
+        <!-- GET, so the sheet is bookmarkable and refresh-safe. -->
+        <form method="GET" action="/professor/attendance/mark">
+          <div class="field">
+            <label for="course_id">Course</label>
+            <select id="course_id" name="course_id" required>
+              <option value="">Select course</option>
+              <% courses.forEach(function (c) { %>
+                <option value="<%= c.course_id %>"
+                  <%= String(values.course_id) === String(c.course_id) ? 'selected' : '' %>>
+                  <%= c.course_name %> (<%= c.course_code %>)
+                </option>
+              <% }); %>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="department_id">Department</label>
+              <select id="department_id" name="department_id" required>
+                <option value="">Select department</option>
+                <% departments.forEach(function (d) { %>
+                  <option value="<%= d.department_id %>"
+                    <%= String(values.department_id || prof.department_id) === String(d.department_id) ? 'selected' : '' %>>
+                    <%= d.department_name %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="field">
+              <label for="semester_id">Semester</label>
+              <select id="semester_id" name="semester_id" required>
+                <option value="">Select semester</option>
+                <% semesters.forEach(function (s) { %>
+                  <option value="<%= s.semester_id %>"
+                    <%= String(values.semester_id) === String(s.semester_id) ? 'selected' : '' %>>
+                    <%= s.semester_name %>
+                  </option>
+                <% }); %>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" value="<%= values.date || todayIso %>" required>
+            <div class="hint">Marking the same course twice on one date updates the existing record.</div>
+          </div>
+
+          <button type="submit" class="btn">Continue</button>
+        </form>
+      <% } %>
+    </div>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

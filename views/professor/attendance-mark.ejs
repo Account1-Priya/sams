@@ -1,0 +1,145 @@
+<%- include('../partials/head', { title }) %>
+<%
+  const nav = [
+    { key: 'home',       href: '/professor',            label: 'Overview',        icon: '■' },
+    { key: 'attendance', href: '/professor/attendance', label: 'Mark attendance', icon: '✓' },
+    { key: 'marks',      href: '/professor/marks',      label: 'Upload marks',    icon: '★' }
+  ];
+  const short = (s) => (s || '').trim().charAt(0).toUpperCase();
+  const tokenOf = (s) => (s === 'Present' ? 'good' : (s === 'Late' ? 'warning' : 'critical'));
+%>
+
+<div class="layout">
+  <%- include('../partials/sidebar', {
+        initials: short(prof.first_name) + short(prof.last_name),
+        name: prof.first_name + ' ' + (prof.last_name || ''),
+        subtitle: prof.department_name || '',
+        active, links: nav
+      }) %>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1><%= course ? course.course_name : 'Attendance' %></h1>
+        <div class="sub">
+          <% if (course) { %><span class="pill pill--brand"><%= course.course_code %></span> &middot; <% } %>
+          <%= date %> &middot; <%= students.length %> student<%= students.length === 1 ? '' : 's' %>
+        </div>
+      </div>
+      <a href="/professor/attendance" class="btn btn--subtle btn--sm">Change class</a>
+    </div>
+
+    <% if (alreadyMarked) { %>
+      <div class="alert alert--info">
+        <span class="alert__ico" aria-hidden="true">&#8505;</span>
+        <span>
+          Attendance was already recorded for this class on <%= date %>.
+          Saving updates those records rather than creating duplicates.
+        </span>
+      </div>
+    <% } %>
+
+    <% if (!students.length) { %>
+      <div class="card">
+        <div class="empty">
+          <span class="empty__icon" aria-hidden="true">&#128101;</span>
+          No students found in that department and semester.
+        </div>
+      </div>
+    <% } else { %>
+      <form method="POST" action="/professor/attendance/mark" id="attForm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="department_id" value="<%= departmentId %>">
+        <input type="hidden" name="semester_id"   value="<%= semesterId %>">
+        <input type="hidden" name="course_id"     value="<%= courseId %>">
+        <input type="hidden" name="date"          value="<%= date %>">
+
+        <!-- Live tally: the effect of the choices, before saving -->
+        <div class="grid grid--4">
+          <div class="stat">
+            <div class="stat__label">Present</div>
+            <div class="stat__value stat__value--good" data-tally="Present">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">Late</div>
+            <div class="stat__value stat__value--warning" data-tally="Late">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">Absent</div>
+            <div class="stat__value stat__value--critical" data-tally="Absent">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat__label">Turnout</div>
+            <div class="stat__value" id="tallyPct">0%</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <h2>Students</h2>
+            <div class="btn-row">
+              <span style="font-size:.8rem;color:var(--text-muted)">Mark all</span>
+              <% statuses.forEach(function (s) { %>
+                <button type="button" class="btn btn--subtle btn--sm" data-all="<%= s %>">
+                  <span aria-hidden="true"><%= viz.STATUS_ICON[s] || '' %></span> <%= s %>
+                </button>
+              <% }); %>
+            </div>
+          </div>
+
+          <div class="field" style="max-width:300px">
+            <label for="search">Find a student</label>
+            <input type="search" id="search" placeholder="Name or enrollment number" autocomplete="off">
+            <div class="hint" id="searchNote" aria-live="polite"></div>
+          </div>
+
+          <div class="table-wrap">
+            <table id="studentTable">
+              <thead>
+                <tr>
+                  <th style="width:34px" class="num">#</th>
+                  <th>Student</th>
+                  <th style="width:290px">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% students.forEach(function (s, i) {
+                     const current = existingMap[s.student_id] || 'Present'; %>
+                  <tr data-name="<%= (s.first_name + ' ' + (s.last_name||'') + ' ' + s.enrollment_no).toLowerCase() %>">
+                    <td class="num" style="color:var(--text-muted)"><%= i + 1 %></td>
+                    <td>
+                      <span class="cell-strong"><%= s.first_name %> <%= s.last_name || '' %></span>
+                      <div class="cell-sub"><%= s.enrollment_no %></div>
+                    </td>
+                    <td>
+                      <div class="btn-row" role="radiogroup"
+                           aria-label="Attendance for <%= s.first_name %> <%= s.last_name || '' %>">
+                        <% statuses.forEach(function (st) { %>
+                          <label class="status-opt">
+                            <input type="radio" name="status[s<%= s.student_id %>]" value="<%= st %>"
+                                   <%= current === st ? 'checked' : '' %>>
+                            <span class="pill pill--<%= tokenOf(st) %>">
+                              <span class="pill__ico" aria-hidden="true"><%= viz.STATUS_ICON[st] || '' %></span>
+                              <%= st %>
+                            </span>
+                          </label>
+                        <% }); %>
+                      </div>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="btn-row" style="margin-top:1.1rem">
+            <button type="submit" class="btn">Save attendance</button>
+            <a href="/professor" class="btn btn--subtle">Cancel</a>
+          </div>
+        </div>
+      </form>
+    <% } %>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

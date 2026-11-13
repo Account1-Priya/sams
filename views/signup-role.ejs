@@ -1,0 +1,39 @@
+<%- include('partials/head', { title }) %>
+
+<main class="auth">
+  <%- include('partials/auth-aside', {
+        heading: 'Join your department.',
+        lede: 'Create an account to start tracking attendance and marks.'
+      }) %>
+
+  <div class="auth__panel">
+    <div class="auth__card">
+      <h1 class="auth__title">Create an account</h1>
+      <p class="auth__lede">Choose the kind of account you need.</p>
+
+      <div class="role-grid">
+        <a class="role-card" href="/signup/student">
+          <span class="ico" aria-hidden="true">&#127891;</span>
+          <span class="nm">Student</span>
+          <span class="ds">View attendance &amp; marks</span>
+        </a>
+        <a class="role-card" href="/signup/professor">
+          <span class="ico" aria-hidden="true">&#128218;</span>
+          <span class="nm">Professor</span>
+          <span class="ds">Mark attendance, upload marks</span>
+        </a>
+      </div>
+
+      <div class="alert alert--info" style="margin-top:1.1rem">
+        <span class="alert__ico" aria-hidden="true">&#8505;</span>
+        <span>Head of Department accounts are created by the system administrator, not through this form.</span>
+      </div>
+
+      <div class="auth__foot">
+        Already registered? <a href="/login">Sign in</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

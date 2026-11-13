@@ -1,0 +1,78 @@
+<%- include('partials/head', { title }) %>
+
+<main class="auth">
+  <%- include('partials/auth-aside', {
+        heading: 'Attendance, without the paperwork.',
+        lede: 'Sign in to record attendance, publish marks, and see exactly where every student stands.'
+      }) %>
+
+  <div class="auth__panel">
+    <div class="auth__card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+        <div>
+          <h1 class="auth__title">Sign in</h1>
+          <p class="auth__lede">Welcome back. Choose your role to continue.</p>
+        </div>
+        <button type="button" class="theme-toggle" data-theme-toggle
+                aria-label="Switch colour theme" title="Switch colour theme">
+          <span class="ico-light" aria-hidden="true">&#9728;</span>
+          <span class="ico-dark" aria-hidden="true">&#9790;</span>
+        </button>
+      </div>
+
+      <% if (error) { %>
+        <div class="alert alert--error" role="alert">
+          <span class="alert__ico" aria-hidden="true">&#9888;</span>
+          <span><%= error %></span>
+        </div>
+      <% } %>
+
+      <% if (typeof registered !== 'undefined' && registered) { %>
+        <div class="alert alert--success">
+          <span class="alert__ico" aria-hidden="true">&#10003;</span>
+          <span>Account created. You can sign in now.</span>
+        </div>
+      <% } %>
+
+      <div class="cred-box">
+        <strong>Demo accounts</strong> &mdash; password <code>Pass@123</code><br>
+        HoD <code>admin1</code> &middot; Professor <code>prof_sharma</code> &middot; Student <code>CS2021001</code>
+      </div>
+
+      <form method="POST" action="/login" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="next" value="<%= next %>">
+
+        <div class="field">
+          <label for="role">I am a</label>
+          <select name="role" id="role" required>
+            <option value="">Select your role</option>
+            <option value="1" <%= values.role === '1' ? 'selected' : '' %>>Head of Department</option>
+            <option value="2" <%= values.role === '2' ? 'selected' : '' %>>Professor</option>
+            <option value="3" <%= values.role === '3' ? 'selected' : '' %>>Student</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username"
+                 value="<%= values.username || '' %>" required autofocus>
+          <div class="hint">Students: use your enrollment number.</div>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn btn--block">Sign in</button>
+      </form>
+
+      <div class="auth__foot">
+        Don't have an account? <a href="/signup">Create one</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

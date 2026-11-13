@@ -1,0 +1,180 @@
+<%- include('../partials/head', { title }) %>
+<%
+  const nav = [
+    { key: 'attendance', href: '/student',       label: 'My attendance', icon: '✓' },
+    { key: 'marks',      href: '/student/marks', label: 'Mid-sem marks', icon: '★' }
+  ];
+  const pct  = stats.percentage;
+  const t    = viz.tone(pct);
+  const short = (s) => (s || '').trim().charAt(0).toUpperCase();
+%>
+
+<div class="layout">
+  <%- include('../partials/sidebar', {
+        initials: short(student.first_name) + short(student.last_name),
+        name: student.first_name + ' ' + (student.last_name || ''),
+        subtitle: student.enrollment_no,
+        active, links: nav
+      }) %>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>My attendance</h1>
+        <div class="sub">
+          <%= student.department_name || 'Department not set' %>
+          &middot; <%= student.semester_name || 'Semester not set' %>
+          <% if (student.session) { %> &middot; <%= student.session %><% } %>
+        </div>
+      </div>
+      <div class="btn-row">
+        <a href="/student/marks" class="btn btn--subtle btn--sm">View marks</a>
+      </div>
+    </div>
+
+    <% if (stats.total === 0) { %>
+      <div class="card">
+        <div class="empty">
+          <span class="empty__icon" aria-hidden="true">&#128197;</span>
+          No attendance has been recorded for you yet.<br>
+          <span style="font-size:.85rem">Figures will appear once a professor marks a class.</span>
+        </div>
+      </div>
+    <% } else { %>
+
+      <% if (pct < 75) { %>
+        <div class="alert alert--<%= t === 'critical' ? 'error' : 'warning' %>">
+          <span class="alert__ico" aria-hidden="true">&#9888;</span>
+          <span>
+            <strong>Below the 75% requirement.</strong>
+            You have attended <%= stats.attended %> of <%= stats.total %> classes.
+            <% const need = Math.ceil((0.75 * stats.total - stats.attended) / 0.25); %>
+            <% if (need > 0) { %>
+              Attend the next <strong><%= need %></strong> class<%= need === 1 ? '' : 'es' %> to reach 75%.
+            <% } %>
+          </span>
+        </div>
+      <% } %>
+
+      <!-- Hero figure + trend. One hero per view. -->
+      <div class="grid grid--hero">
+        <div class="card" style="margin:0">
+          <div class="hero">
+            <div class="hero__label">Overall attendance</div>
+            <div class="hero__value hero__value--<%= t %>"><%= pct.toFixed(1) %>%</div>
+            <div class="hero__note"><%= stats.attended %> of <%= stats.total %> classes attended</div>
+            <div class="hero__meter"><%- viz.meter(pct, { height: 10 }) %></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card__head">
+            <h2>Attendance over time</h2>
+            <span class="card__note">Running percentage</span>
+          </div>
+          <% if (trend.length < 2) { %>
+            <div class="empty" style="padding:1.4rem 1rem">
+              Not enough history yet &mdash; a trend appears after two or more class days.
+            </div>
+          <% } else { %>
+            <%- viz.lineChart(trend, { valueLabel: 'Attendance', dateLabel: 'Date' }) %>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="grid grid--2">
+        <!-- One whole split into three parts, read at a glance -->
+        <div class="card" style="margin:0">
+          <div class="card__head">
+            <h2>How your classes went</h2>
+            <span class="card__note"><%= stats.total %> records</span>
+          </div>
+          <%- viz.segmentedBar([
+                { name: 'Present', value: stats.present },
+                { name: 'Late',    value: stats.late },
+                { name: 'Absent',  value: stats.absent }
+              ], { unit: ' classes' }) %>
+        </div>
+
+        <!-- Several ratios, one per named row -->
+        <div class="card" style="margin:0">
+          <div class="card__head">
+            <h2>By subject</h2>
+            <span class="card__note">Attended / held</span>
+          </div>
+          <% if (!bySubject.length) { %>
+            <div class="empty" style="padding:1.4rem 1rem">No subjects yet.</div>
+          <% } else { %>
+            <%- viz.meterList(bySubject.map(function (s) {
+                  return {
+                    name: s.course_name,
+                    sub: s.course_code,
+                    pct: s.total > 0 ? (s.attended / s.total) * 100 : 0,
+                    detail: s.attended + ' / ' + s.total
+                  };
+                }), { nameLabel: 'Course', valueLabel: 'Attended' }) %>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Day-by-day records -->
+      <div class="card">
+        <div class="card__head">
+          <h2>Class records</h2>
+          <form method="GET" action="/student" class="filters btn-row">
+            <select name="filter" onchange="this.form.submit()" aria-label="Filter attendance records">
+              <option value="all"  <%= filter === 'all'  ? 'selected' : '' %>>All dates</option>
+              <option value="date" <%= filter === 'date' ? 'selected' : '' %>>Specific date</option>
+            </select>
+            <input type="date" name="date" value="<%= date %>" <%= filter === 'all' ? 'disabled' : '' %>
+                   aria-label="Choose date" style="width:auto">
+            <button type="submit" class="btn btn--subtle btn--sm">Apply</button>
+          </form>
+        </div>
+
+        <% if (!grouped.length) { %>
+          <div class="empty">
+            <span class="empty__icon" aria-hidden="true">&#128197;</span>
+            No records<%= filter === 'date' ? ' for ' + date : '' %>.
+          </div>
+        <% } else { %>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Course</th><th style="width:120px">Status</th></tr>
+              </thead>
+              <tbody>
+                <% grouped.forEach(function (entry) {
+                     const day = entry[0], items = entry[1]; %>
+                  <% items.forEach(function (r) { %>
+                    <tr>
+                      <td style="white-space:nowrap">
+                        <span class="cell-strong"><%= day %></span>
+                      </td>
+                      <td>
+                        <span class="cell-strong"><%= r.course_name %></span>
+                        <span class="cell-sub">(<%= r.course_code %>)</span>
+                      </td>
+                      <td>
+                        <%
+                          const tok = r.status === 'Present' ? 'good'
+                                    : (r.status === 'Late' ? 'warning' : 'critical');
+                        %>
+                        <span class="pill pill--<%= tok %>">
+                          <span class="pill__ico" aria-hidden="true"><%= viz.STATUS_ICON[r.status] || '' %></span>
+                          <%= r.status %>
+                        </span>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>

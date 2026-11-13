@@ -1,0 +1,30 @@
+{
+  "name": "sams",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Student Attendance Management System - Node.js + Supabase (PostgreSQL)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "devdb": "node tools/devdb.mjs",
+    "db:push": "node tools/push-schema.mjs",
+    "db:inspect": "node tools/db-inspect.mjs",
+    "db:init": "node tools/db-init.mjs",
+    "db:clean": "node tools/db-clean-test-data.mjs",
+    "smoke": "node tools/smoke.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@electric-sql/pglite-socket": "^0.2.19"
+  }
+}

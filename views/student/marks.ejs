@@ -1,0 +1,142 @@
+<%- include('../partials/head', { title }) %>
+<%
+  const nav = [
+    { key: 'attendance', href: '/student',       label: 'My attendance', icon: '✓' },
+    { key: 'marks',      href: '/student/marks', label: 'Mid-sem marks', icon: '★' }
+  ];
+  const short = (s) => (s || '').trim().charAt(0).toUpperCase();
+  // Marks use their own bands - 60/40 is a pass-grade scale, not the 75%
+  // attendance requirement, so it gets its own token mapping.
+  const markTone = (p) => (p >= 60 ? 'good' : (p >= 40 ? 'warning' : 'critical'));
+  const asDate = (d) => (d instanceof Date ? d.toISOString().slice(0, 10) : String(d).slice(0, 10));
+%>
+
+<div class="layout">
+  <%- include('../partials/sidebar', {
+        initials: short(student.first_name) + short(student.last_name),
+        name: student.first_name + ' ' + (student.last_name || ''),
+        subtitle: student.enrollment_no,
+        active, links: nav
+      }) %>
+
+  <main class="main">
+    <div class="page-head">
+      <div>
+        <h1>Mid-semester marks</h1>
+        <div class="sub">
+          <%= student.department_name || 'Department not set' %>
+          &middot; <%= student.semester_name || 'Semester not set' %>
+        </div>
+      </div>
+      <div class="btn-row">
+        <a href="/student" class="btn btn--subtle btn--sm">View attendance</a>
+      </div>
+    </div>
+
+    <% if (!marks.length) { %>
+      <div class="card">
+        <div class="empty">
+          <span class="empty__icon" aria-hidden="true">&#128221;</span>
+          No marks have been uploaded yet.<br>
+          <span style="font-size:.85rem">They appear here as soon as a professor uploads them.</span>
+        </div>
+      </div>
+    <% } else { %>
+      <% const ot = markTone(overallPct); %>
+
+      <div class="grid grid--hero">
+        <div class="card" style="margin:0">
+          <div class="hero">
+            <div class="hero__label">Overall score</div>
+            <div class="hero__value hero__value--<%= ot %>"><%= overallPct.toFixed(1) %>%</div>
+            <div class="hero__note"><%= totalObtained %> of <%= totalOutOf %> marks across <%= marks.length %> subject<%= marks.length === 1 ? '' : 's' %></div>
+            <div class="hero__meter"><%- viz.meter(overallPct, { token: ot, height: 10 }) %></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card__head">
+            <h2>Score by subject</h2>
+            <span class="card__note">Marks obtained / total</span>
+          </div>
+          <%- viz.meterList(marks.map(function (m) {
+                const p = m.outof_marks > 0 ? (m.marks_obtained / m.outof_marks) * 100 : 0;
+                return {
+                  name: m.course_name,
+                  sub: m.course_code,
+                  pct: p,
+                  token: markTone(p),
+                  detail: m.marks_obtained + ' / ' + m.outof_marks
+                };
+              }), { nameLabel: 'Course', valueLabel: 'Marks' }) %>
+        </div>
+      </div>
+
+      <!-- Attendance context: real figures, not the zeros the old page showed -->
+      <div class="grid grid--4">
+        <div class="stat">
+          <div class="stat__label">Subjects graded</div>
+          <div class="stat__value"><%= marks.length %></div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">Best subject</div>
+          <%
+            const best = marks.reduce((a, b) =>
+              (b.marks_obtained / b.outof_marks) > (a.marks_obtained / a.outof_marks) ? b : a);
+            const bestPct = (best.marks_obtained / best.outof_marks) * 100;
+          %>
+          <div class="stat__value" style="font-size:1.05rem;line-height:1.5"><%= best.course_code %></div>
+          <div class="stat__note"><%= bestPct.toFixed(0) %>% &middot; <%= best.course_name %></div>
+        </div>
+        <div class="stat stat--<%= viz.tone(stats.percentage) %>">
+          <div class="stat__label">Attendance</div>
+          <div class="stat__value stat__value--<%= viz.tone(stats.percentage) %>"><%= stats.percentage.toFixed(1) %>%</div>
+          <div class="stat__note"><%= stats.attended %> of <%= stats.total %> classes</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">Classes attended</div>
+          <div class="stat__value"><%= stats.attended %></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card__head"><h2>All results</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Course</th>
+                <th class="num">Marks</th>
+                <th class="num">Out of</th>
+                <th style="width:150px">Score</th>
+                <th>Uploaded by</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% marks.forEach(function (m) {
+                   const p = m.outof_marks > 0 ? (m.marks_obtained / m.outof_marks) * 100 : 0; %>
+                <tr>
+                  <td>
+                    <span class="cell-strong"><%= m.course_name %></span>
+                    <div class="cell-sub"><%= m.course_code %></div>
+                  </td>
+                  <td class="num cell-strong"><%= m.marks_obtained %></td>
+                  <td class="num"><%= m.outof_marks %></td>
+                  <td>
+                    <span class="mlist__pct"><%= p.toFixed(1) %>%</span>
+                    <%- viz.meter(p, { token: markTone(p), height: 6 }) %>
+                  </td>
+                  <td><%= m.prof_first %> <%= m.prof_last || '' %></td>
+                  <td style="white-space:nowrap"><%= asDate(m.upload_date) %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+  </main>
+</div>
+
+<%- include('../partials/foot') %>
