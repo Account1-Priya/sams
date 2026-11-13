@@ -99,14 +99,33 @@ app.use((err, req, res, _next) => {
   // The PHP pages printed raw SQL errors straight to the browser.
   console.error('[error]', err);
 
-  const dbDown = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', '28P01', '3D000'].includes(err.code);
+  // If the response is already on the wire there is no error page left to
+  // send, and trying anyway throws ERR_HTTP_HEADERS_SENT on top of the real
+  // error - which buries it. Hand those to Express, which closes the socket.
+  if (res.headersSent) return _next(err);
+
+  /* Codes that mean "the database is not reachable", as opposed to a bug.
+     ENETUNREACH belongs here: it is what a host with no IPv6 route returns
+     when DATABASE_URL points at a database that only publishes an AAAA
+     record, which is the single easiest way to misconfigure this deploy. */
+  const dbDown = [
+    'ECONNREFUSED',   // nothing listening
+    'ENOTFOUND',      // hostname does not resolve
+    'ETIMEDOUT',      // no answer
+    'ENETUNREACH',    // no route to that address family (IPv6-only host)
+    'EHOSTUNREACH',   // no route to that host
+    'ECONNRESET',     // connection dropped mid-query
+    '28P01',          // password authentication failed
+    '3D000',          // database does not exist
+  ].includes(err.code);
 
   res.status(500).render('error', {
     title: dbDown ? 'Database unavailable' : 'Something went wrong',
     status: 500,
     message: dbDown
-      ? 'The application could not reach the database. Check DATABASE_URL in your .env file, ' +
-        'or start the local test database with "npm run devdb".'
+      ? 'The application could not reach the database. Check DATABASE_URL - on a host ' +
+        'without IPv6 it must point at a pooler, not a direct database host. Locally, ' +
+        'start the test database with "npm run devdb".'
       : 'An unexpected error occurred. The details have been logged to the server console.',
     detail: isProd ? null : (err.stack ?? String(err)),
   });

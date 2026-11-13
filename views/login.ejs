@@ -34,9 +34,35 @@
         </div>
       <% } %>
 
+      <%
+        /* Demo accounts seeded by schema.sql. They all share one password.
+           The buttons only fill the form below - signing in still goes
+           through the same POST, CSRF token and password check as any
+           other account, so nothing here bypasses authentication. */
+        const demoPassword = 'Pass@123';
+        const demoAccounts = [
+          { role: '1', label: 'Head of Dept', username: 'admin1' },
+          { role: '2', label: 'Professor',    username: 'prof_sharma' },
+          { role: '3', label: 'Student',      username: 'CS2021001' }
+        ];
+      %>
       <div class="cred-box">
-        <strong>Demo accounts</strong> &mdash; password <code>Pass@123</code><br>
-        HoD <code>admin1</code> &middot; Professor <code>prof_sharma</code> &middot; Student <code>CS2021001</code>
+        <div class="cred-box__head">
+          <strong>Demo accounts</strong>
+          <span>One click fills the form &middot; password <code><%= demoPassword %></code></span>
+        </div>
+        <div class="cred-row">
+          <% demoAccounts.forEach(function (a) { %>
+            <button type="button" class="cred-btn" data-demo
+                    data-role="<%= a.role %>"
+                    data-username="<%= a.username %>"
+                    data-password="<%= demoPassword %>">
+              <span class="cred-btn__role"><%= a.label %></span>
+              <span class="cred-btn__user"><%= a.username %></span>
+            </button>
+          <% }); %>
+        </div>
+        <p class="cred-box__status" data-demo-status role="status" aria-live="polite"></p>
       </div>
 
       <form method="POST" action="/login" novalidate>

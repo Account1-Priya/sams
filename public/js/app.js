@@ -42,6 +42,48 @@
     if (e.key === 'Escape') setNav(false);
   });
 
+  /* ------------------------------------------------ demo credentials */
+  // Fills the sign-in form from one of the seeded demo accounts. It only
+  // populates the inputs - submitting still goes through the normal POST,
+  // CSRF check and password verification, so this grants no access on its
+  // own. The buttons sit OUTSIDE the <form>, so the fields are resolved by
+  // id rather than via closest('form').
+  var demoButtons = document.querySelectorAll('[data-demo]');
+  if (demoButtons.length) {
+    var demoStatus = document.querySelector('[data-demo-status]');
+
+    demoButtons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var role = document.getElementById('role');
+        var user = document.getElementById('username');
+        var pass = document.getElementById('password');
+        if (!role || !user || !pass) return;
+
+        role.value = btn.getAttribute('data-role');
+        user.value = btn.getAttribute('data-username');
+        pass.value = btn.getAttribute('data-password');
+
+        // Let anything watching the fields (validation, other listeners)
+        // see these as real edits rather than silent assignments.
+        [role, user, pass].forEach(function (el) {
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        demoButtons.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+
+        if (demoStatus) {
+          demoStatus.textContent =
+            'Filled in ' + btn.getAttribute('data-username') + '. Press Sign in to continue.';
+        }
+
+        // Put the person one keystroke from signing in.
+        var submit = document.querySelector('form[action="/login"] button[type=submit]');
+        if (submit) submit.focus();
+      });
+    });
+  }
+
   /* ---------------------------------------------------- chart tooltips */
   // Tooltips ENHANCE; they never gate a value. Every chart also ships a
   // "Show data table" twin, and keyboard focus shows the same as hover.
